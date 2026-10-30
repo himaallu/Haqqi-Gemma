@@ -9,7 +9,22 @@ A worker tells their story by voice or text. Haqqi answers with the rights that 
 article of the law, an itemised claim from a deterministic calculator, and a ready-to-file Arabic complaint PDF with a
 translation alongside.
 
-**Live:** https://haqqi-ai.vercel.app
+**Live (original Haqqi, still on Gemini Flash):** https://haqqi-ai.vercel.app
+
+## Hacktoberfest Hack Day Dubai (30 Oct 2026)
+
+This repo is built for Hacktoberfest Hack Day Dubai x Legesher. It is a copy of my
+[Haqqi project](https://github.com/himaallu/Haqqi-AI), with its full history, so everything before today's commits was
+built for Haqqi. What changed today:
+
+- **Open-weight Gemma 4 is now the default model.** Every LLM step (intake, analyst, critic, revision, writer) runs on
+  `gemma-4-31b-it`, with `gemma-4-26b-a4b-it` as the fallback, through Google's OpenAI-compatible Gemini API endpoint.
+  Leaving `K2_API_KEY` empty keeps every step on Gemma. The client now sends the Gemini-only `reasoning_effort` field to
+  Gemini models only.
+- **Open source:** an MIT licence (`LICENSE`) for Haqqi's code. Fonts stay under the SIL OFL, and the other terms are
+  in `THIRD_PARTY_NOTICES.md`.
+
+The evaluation scores below come from the original Haqqi runs (K2 and Gemini Flash). They have not been re-run on Gemma 4.
 
 <p align="center"><img src="docs/demo.gif" width="300" alt="Haqqi on a phone, in Urdu: choose a language, tell the story, confirm the facts, watch the checks run, read the result, download the Arabic complaint"></p>
 
@@ -72,7 +87,8 @@ flowchart TD
     classDef llm fill:#fde7c8,stroke:#c77700,color:#222
 ```
 
-The tinted steps call an LLM: free-tier Gemini models first, then K2 Horizon (IFM) as the fallback. Everything else is
+The tinted steps call an LLM: open-weight Gemma 4 (`gemma-4-31b-it`, then `gemma-4-26b-a4b-it`) through Google's
+Gemini API, with K2 Horizon (IFM) as an optional fallback when `K2_API_KEY` is set. Everything else is
 plain code, so no amount or article reaches the worker unchecked.
 
 **Trust rules (enforced in code, see `CLAUDE.md`):**
@@ -93,7 +109,7 @@ plain code, so no amount or article reaches the worker unchecked.
 | Database | Supabase Postgres with pgvector and Arabic/English full-text search; pg_cron deletes cases after 7 days |
 | Law | Federal Decree-Law 33/2021 (as amended) and Cabinet Resolution 1/2022, English and Arabic, one chunk per clause (`data/law/`) |
 | Embeddings, speech | BGE-M3 and Whisper large-v3-turbo on Cloudflare Workers AI |
-| LLM | Gemini free models (Flash → Flash-Lite), then K2 Horizon |
+| LLM | Gemma 4 (31B, then 26B A4B) on Google's free API tier; K2 Horizon optional. Gemini Flash models still work via `GEMINI_MODEL` |
 | Tracing | Langfuse via OpenTelemetry: stage, model, timing and tokens per LLM call, never content |
 | PDF | WeasyPrint with Noto Naskh Arabic and the Noto font for each worker language |
 
@@ -137,7 +153,7 @@ cd backend && DATABASE_URL=postgresql://haqqi:haqqi@localhost:5432/haqqi \
 | `make eval-offline` | Calculator vs the hand-worked cases, no LLM (runs in CI) |
 | `make eval` | The full evaluation (K2 by default; `EVAL_ARGS="--provider gemini"`) |
 
-Keys: `GEMINI_API_KEY` and/or `K2_API_KEY` for the LLM, and `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` with
+Keys: `GEMINI_API_KEY` for Gemma 4 (`K2_API_KEY` optional), and `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` with
 `EMBEDDER=cloudflare` for search and voice. Tests use a fake embedder and need no keys. Deploying to Vercel, Render and
 Supabase is covered in [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
@@ -168,7 +184,7 @@ placed in the **top 4 of 400+**. That version is a 31-node n8n workflow, kept in
 ## Privacy and limits
 
 - **Legal information, not legal advice.** MOHRE decides; every page and the PDF give the MOHRE number, 80084.
-- **The story is processed by Google Gemini on its free tier**, which may use the text to improve its products. Workers
+- **The story is processed by Google (Gemma 4 on the Gemini API free tier)**, which may use the text to improve its products. Workers
   are told not to include names, phone numbers, passport, Emirates ID or labour card numbers.
 - **Cases are deleted after 7 days.** The name, labour card and employer typed for the complaint are printed into the
   PDF and never stored.
@@ -180,3 +196,8 @@ Still open:
 - native-speaker review of the translations;
 - error reporting (Sentry, deferred);
 - the 90-second demo video.
+
+## Licence
+
+MIT, copyright 2026 Himasri Allu (`LICENSE`). Third-party fonts, law text and dependencies keep their own terms
+(`THIRD_PARTY_NOTICES.md`).
