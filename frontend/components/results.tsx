@@ -39,6 +39,11 @@ export function Results({ caseId, analysis, onRetry }: { caseId: string; analysi
     <article className="flex flex-col gap-8" data-testid="results">
       <header className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">{t("results.title")}</p>
+        {analysis.replay_label && (
+          <p className="self-start rounded-md border px-2 py-1 text-xs text-muted-foreground" data-testid="replay-label">
+            {analysis.replay_label}
+          </p>
+        )}
         {unsure && (
           <div className="flex flex-col gap-3 rounded-md bg-warning-bg px-3 py-3 text-warning-fg" data-testid="unsure">
             <p className="font-medium">{t("results.unsure")}</p>

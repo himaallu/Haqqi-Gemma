@@ -25,6 +25,9 @@ RUN uv sync --frozen --no-dev
 # Law text and the Law Pack: retrieval and citation checks read them at runtime.
 COPY data/law/*.json ./data/law/
 RUN python -c "from haqqi.rag.lawdata import load_chunks, load_law_pack; load_law_pack(); assert load_chunks()"
+# DEMO_REPLAY's recorded Gemma 4 run of TC-02 (off unless DEMO_REPLAY=1).
+COPY eval/demo/tc02_gemma_run1.json ./eval/demo/
+ENV DEMO_REPLAY_FILE=/app/eval/demo/tc02_gemma_run1.json
 # Fail the build if the PDF stack can't render Arabic.
 RUN python -m haqqi.pdf.smoke /tmp/smoke.pdf && rm /tmp/smoke.pdf
 

@@ -27,7 +27,7 @@ from fastapi.responses import Response, StreamingResponse
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, ValidationError
 
-from haqqi import tracing
+from haqqi import demo_replay, tracing
 from haqqi.agents.intake import run_intake
 from haqqi.agents.pipeline import Search, analyze_case
 from haqqi.api.schemas import ComplaintRequest, CreateCaseRequest
@@ -135,6 +135,10 @@ def get_test_hooks() -> bool:
     return get_settings().haqqi_test_hooks
 
 
+def _replaying(story: str, language: str) -> bool:
+    return get_settings().demo_replay and demo_replay.matches(story, language)
+
+
 DbUrl = Annotated[str, Depends(get_database_url)]
 Llm = Annotated[Completer, Depends(get_llm)]
 EmbedderDep = Annotated[Embedder, Depends(get_embedder_dep)]
@@ -218,6 +222,8 @@ def _route_data(decision: RouteDecision) -> dict[str, Any]:
 
 @router.post("", status_code=201)
 def create_case(req: CreateCaseRequest, llm: Llm, db_url: DbUrl) -> CaseView:
+    if _replaying(req.story, req.language):
+        llm = demo_replay.ReplayLLM()
     try:
         with tracing.trace("intake", language=req.language):
             extracted = run_intake(llm, req)
@@ -292,12 +298,17 @@ def analyze(
     facts = CaseFacts.model_validate(data["confirmed"])
     query = data["extracted"].get("facts_summary_en") or facts.story
 
-    def search(text: str, issue_types: Sequence[IssueType]) -> list[RetrievedChunk]:
+    def live_search(text: str, issue_types: Sequence[IssueType]) -> list[RetrievedChunk]:
         with psycopg.connect(db_url) as conn:
             return retrieve(conn, text, embedder, load_law_pack(), list(issue_types))
 
+    search: Search = live_search
+    replay = _replaying(facts.story, facts.language)
+    if replay:
+        llm, search = demo_replay.ReplayLLM(), demo_replay.replay_search()
+    seed = seed_bad_citation and test_hooks and not replay
     return StreamingResponse(
-        _run_streamed(case_id, facts, query, llm, search, db_url, seed_bad_citation and test_hooks),
+        _run_streamed(case_id, facts, query, llm, search, db_url, seed, replay=replay),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
@@ -335,6 +346,8 @@ def _run_streamed(
     search: Search,
     db_url: str,
     seed: bool,
+    *,
+    replay: bool = False,
 ) -> Iterator[str]:
     events: queue.Queue[tuple[str, str] | None] = queue.Queue()
 
@@ -349,6 +362,8 @@ def _run_streamed(
                     lambda stage: events.put((stage, "{}")),
                     seed_bad_citation=seed,
                 )
+            if replay:
+                analysis = analysis.model_copy(update={"replay_label": demo_replay.LABEL})
             _save_analysis(db_url, case_id, analysis)
             events.put(("done", analysis.model_dump_json()))
         except LLMError as exc:

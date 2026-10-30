@@ -103,6 +103,7 @@ export type Analysis = {
   revised: boolean;
   writer: WriterOutput | null;
   writer_failed: boolean;
+  replay_label?: string | null; // DEMO_REPLAY: replies replayed from a recorded Gemma 4 run
   unsure: boolean; // no finding above "low" confidence (task 8.5)
 };
 
