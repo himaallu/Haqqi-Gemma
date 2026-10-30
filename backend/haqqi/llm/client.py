@@ -80,7 +80,8 @@ def providers_from_settings(settings: Settings) -> list[Provider]:
             model,
             settings.gemini_api_key,
             # Less hidden "thinking" means faster replies; our prompts ask for extraction and JSON.
-            extra={"reasoning_effort": "low"},
+            # Only Gemini models take it: Gemma on the same endpoint may reject the field.
+            extra={"reasoning_effort": "low"} if model.startswith("gemini") else {},
         )
         for model in dict.fromkeys([settings.gemini_model, *settings.gemini_fallback_models])
     ]
