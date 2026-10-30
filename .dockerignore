@@ -4,4 +4,5 @@
 !backend/uv.lock
 !backend/haqqi
 !data/law/*.json
+!eval/demo/*.json
 **/__pycache__
