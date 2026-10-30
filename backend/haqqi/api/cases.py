@@ -135,8 +135,8 @@ def get_test_hooks() -> bool:
     return get_settings().haqqi_test_hooks
 
 
-def _replaying(story: str, language: str) -> bool:
-    return get_settings().demo_replay and demo_replay.matches(story, language)
+def _replay(story: str, language: str) -> demo_replay.Recording | None:
+    return demo_replay.find(story, language) if get_settings().demo_replay else None
 
 
 DbUrl = Annotated[str, Depends(get_database_url)]
@@ -222,8 +222,8 @@ def _route_data(decision: RouteDecision) -> dict[str, Any]:
 
 @router.post("", status_code=201)
 def create_case(req: CreateCaseRequest, llm: Llm, db_url: DbUrl) -> CaseView:
-    if _replaying(req.story, req.language):
-        llm = demo_replay.ReplayLLM()
+    if (rec := _replay(req.story, req.language)) is not None:
+        llm = demo_replay.ReplayLLM(rec)
     try:
         with tracing.trace("intake", language=req.language):
             extracted = run_intake(llm, req)
@@ -303,9 +303,10 @@ def analyze(
             return retrieve(conn, text, embedder, load_law_pack(), list(issue_types))
 
     search: Search = live_search
-    replay = _replaying(facts.story, facts.language)
-    if replay:
-        llm, search = demo_replay.ReplayLLM(), demo_replay.replay_search()
+    rec = _replay(facts.story, facts.language)
+    replay = rec is not None
+    if rec is not None:
+        llm, search = demo_replay.ReplayLLM(rec), demo_replay.replay_search(rec)
     seed = seed_bad_citation and test_hooks and not replay
     return StreamingResponse(
         _run_streamed(case_id, facts, query, llm, search, db_url, seed, replay=replay),

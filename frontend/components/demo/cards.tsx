@@ -574,6 +574,11 @@ export function ResultCards(props: {
   return (
     <div className="flex flex-col gap-3">
       <div className={cn(card, "flex flex-col gap-3 border-d-primary/30")}>
+        {analysis.replay_label && (
+          <p className="self-start rounded-md border border-d-line px-2 py-1 text-xs text-d-muted" data-testid="replay-label">
+            {analysis.replay_label}
+          </p>
+        )}
         <p dir="auto" className="text-xl font-semibold leading-snug">{headline}</p>
         {(writer?.explanation ?? analysis.explanation)
           .split(/\n+/)

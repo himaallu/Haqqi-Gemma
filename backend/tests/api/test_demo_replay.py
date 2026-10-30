@@ -1,4 +1,4 @@
-"""DEMO_REPLAY through the API: TC-02 (Urdu) with no model call and no network, under 15 s.
+"""DEMO_REPLAY through the API: TC-02 (Urdu and English), no model call or network, under 15 s.
 
 Live test (local database): `make test-live`.
 """
@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 from eval.cases_io import load_cases
+from eval.demo.record import ENGLISH_PITCH_STORY
 from fastapi.testclient import TestClient
 
 from haqqi import demo_replay
@@ -47,9 +48,14 @@ def events(body: str) -> list[tuple[str, Any]]:
     return out
 
 
-def test_tc02_replays_end_to_end_without_a_model_or_network(replay_client: TestClient) -> None:
+@pytest.mark.parametrize(
+    ("language", "story"), [("ur", TC02.story), ("en", ENGLISH_PITCH_STORY)], ids=["ur", "en"]
+)
+def test_tc02_replays_end_to_end_without_a_model_or_network(
+    replay_client: TestClient, language: str, story: str
+) -> None:
     started = time.perf_counter()
-    body = {"language": "ur", "story": TC02.story, "contract_text": TC02.contract_text, **TC02.form}
+    body = {"language": language, "story": story, "contract_text": TC02.contract_text, **TC02.form}
     created = replay_client.post("/v1/cases", json=body)
     assert created.status_code == 201, created.text
     case_id = created.json()["id"]

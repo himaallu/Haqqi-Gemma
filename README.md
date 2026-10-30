@@ -22,11 +22,12 @@ built for Haqqi. What changed today:
   (`gemma-4-31b-it` was dropped: on 30 Oct it returned 500s and timed out on every step). A 5xx or timeout is retried
   twice on the same model (after 2 s, then 5 s); calls time out after 60 s, the Writer's after 120 s. If the Writer
   still can't be reached, the checked findings and amounts are shown with a "Try again" notice.
-- **Demo replay (`DEMO_REPLAY=1`, off by default).** The TC-02 (Urdu) story answers from a recorded Gemma 4 run
-  (`eval/demo/tc02_gemma_run1.json`, 30 Oct 2026) with no model call and no network: routing, the calculator, the
+- **Demo replay (`DEMO_REPLAY=1`, off by default).** Two stories answer from recorded Gemma 4 runs (30 Oct 2026)
+  with no model call and no network: TC-02 in Urdu (`eval/demo/tc02_gemma_run1.json`) and the same case in English,
+  the `/demo` page's "Fired without notice" example (`eval/demo/tc02_en_pitch_gemma.json`). Routing, the calculator, the
   citation checks and the PDF still run live on the recorded replies, the progress stages stream with 1–3 s pauses,
-  and the results page says "Replay of a recorded Gemma 4 run (30 Oct 2026)". Any other story runs live. Re-record
-  with `cd backend && PYTHONPATH=.. uv run python -m eval.demo.record`. The client now sends the Gemini-only `reasoning_effort` field to
+  and the results say "Replay of a recorded Gemma 4 run (30 Oct 2026)". Any other story runs live. Re-record with
+  `cd backend && PYTHONPATH=.. uv run python -m eval.demo.record` (add `--english-pitch` for the English one). The client now sends the Gemini-only `reasoning_effort` field to
   Gemini models only.
 - **Open source:** an MIT licence (`LICENSE`) for Haqqi's code. Fonts stay under the SIL OFL, and the other terms are
   in `THIRD_PARTY_NOTICES.md`.
@@ -162,7 +163,7 @@ cd backend && DATABASE_URL=postgresql://haqqi:haqqi@localhost:5432/haqqi \
 
 Keys: `GEMINI_API_KEY` for Gemma 4 (`K2_API_KEY` optional), and `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` with
 `EMBEDDER=cloudflare` for search and voice. Tests use a fake embedder and need no keys. `DEMO_REPLAY=1` runs the
-TC-02 (Urdu) case from a recorded Gemma 4 run with no model or network (see the Hack Day notes above). Deploying to Vercel, Render and
+TC-02 case (Urdu, or the English `/demo` example) from a recorded Gemma 4 run with no model or network (see the Hack Day notes above). Deploying to Vercel, Render and
 Supabase is covered in [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ```

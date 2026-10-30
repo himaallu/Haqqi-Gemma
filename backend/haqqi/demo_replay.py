@@ -1,8 +1,10 @@
-"""Demo replay (DEMO_REPLAY=1): TC-02 (Urdu) from a recorded Gemma 4 run, without calling a model.
+"""Demo replay (DEMO_REPLAY=1): recorded Gemma 4 runs of TC-02 (Urdu, and the English pitch story),
+without calling a model.
 
 Only the model replies and the retrieved law are replayed. Routing, the calculator, citation
 checks and the PDF run live on them, so the amounts and the letter are computed for real. Any
-other story goes to the live pipeline. Recorded with `python -m eval.demo.record`.
+other story goes to the live pipeline. Recorded with `python -m eval.demo.record`; every
+eval/demo/*.json file is one recording.
 """
 
 import json
@@ -21,9 +23,8 @@ from haqqi.models import IssueType
 from haqqi.rag.lawdata import load_chunks
 from haqqi.rag.retrieve import RetrievedChunk
 
-RECORDING = Path(
-    os.environ.get("DEMO_REPLAY_FILE")
-    or Path(__file__).resolve().parents[2] / "eval" / "demo" / "tc02_gemma_run1.json"
+RECORDINGS_DIR = Path(
+    os.environ.get("DEMO_REPLAY_DIR") or Path(__file__).resolve().parents[2] / "eval" / "demo"
 )
 LABEL = "Replay of a recorded Gemma 4 run (30 Oct 2026)"
 # Short pauses so the progress view ticks like a real run (Gemma 4 26B took 1-66 s per step).
@@ -35,24 +36,28 @@ def _normal(text: str) -> str:
     return " ".join(text.split())
 
 
+Recording = dict[str, Any]
+
+
 @cache
-def recording() -> dict[str, Any]:
-    data: dict[str, Any] = json.loads(RECORDING.read_text())
-    return data
+def recordings() -> tuple[Recording, ...]:
+    return tuple(json.loads(p.read_text()) for p in sorted(RECORDINGS_DIR.glob("*.json")))
 
 
-def matches(story: str, language: str) -> bool:
-    """True for the recorded case's story (whitespace aside) in its language."""
-    rec = recording()
-    return language == rec["language"] and _normal(story) == _normal(rec["story"])
+def find(story: str, language: str) -> Recording | None:
+    """The recording of this story (whitespace aside) in this language, if there is one."""
+    for rec in recordings():
+        if language == rec["language"] and _normal(story) == _normal(rec["story"]):
+            return rec
+    return None
 
 
 class ReplayLLM:
     """A `Completer` that returns the recorded reply for each stage, in order."""
 
-    def __init__(self, sleep: Callable[[float], None] = time.sleep) -> None:
+    def __init__(self, rec: Recording, sleep: Callable[[float], None] = time.sleep) -> None:
         self._replies: dict[str, list[Any]] = defaultdict(list)
-        for call in recording()["calls"]:
+        for call in rec["calls"]:
             self._replies[call["stage"]].append(call["output"])
         self._sleep = sleep
 
@@ -64,7 +69,7 @@ class ReplayLLM:
 
 
 def replay_search(
-    sleep: Callable[[float], None] = time.sleep,
+    rec: Recording, sleep: Callable[[float], None] = time.sleep
 ) -> Callable[[str, Sequence[IssueType]], list[RetrievedChunk]]:
     """The law the recorded run retrieved, read from data/law (no embedder, no database)."""
 
@@ -81,7 +86,7 @@ def replay_search(
                 text_ar=by_id[hit["id"]].text_ar,
                 source=hit["source"],
             )
-            for hit in recording()["retrieved"]
+            for hit in rec["retrieved"]
         ]
 
     return search
