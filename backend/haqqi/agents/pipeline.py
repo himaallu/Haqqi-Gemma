@@ -11,7 +11,7 @@ from haqqi.agents.analysis import run_analysis
 from haqqi.agents.citations import to_violations
 from haqqi.agents.writer import run_writer
 from haqqi.core.calculator import calculate
-from haqqi.llm.client import Completer, LLMOutputError
+from haqqi.llm.client import Completer, LLMOutputError, LLMUnavailable
 from haqqi.models import Analysis, CaseFacts, IssueType
 from haqqi.rag.retrieve import RetrievedChunk
 
@@ -41,9 +41,10 @@ def analyze_case(
     emit("writing")
     try:
         writer = run_writer(llm, facts, run.reply, calc)
-    except LLMOutputError as exc:
+    except (LLMOutputError, LLMUnavailable) as exc:
         # Violations, citations and money are already checked by code: show them without the
         # worker-language text and letter rather than failing the whole case (user decision, 4 Oct).
+        # The same when the Writer's model can't be reached (30 Oct: Gemma 4 timed out on it).
         log.warning("writer failed, returning analysis without it: %s", exc)
         writer = None
 

@@ -1,7 +1,10 @@
 from collections.abc import Sequence
 from decimal import Decimal
 
+from pydantic import BaseModel
+
 from haqqi.agents.pipeline import analyze_case
+from haqqi.llm.client import LLMUnavailable, Message
 from haqqi.models import IssueType
 from haqqi.rag.retrieve import RetrievedChunk
 from tests.agents.fakes import FakeLLM
@@ -54,4 +57,25 @@ def test_writer_failure_still_returns_the_checked_results() -> None:
 
     assert analysis.writer is None and analysis.writer_failed
     assert analysis.total_aed == Decimal("4800.00")  # the calculator's money is unaffected
+    assert analysis.violations[0].article.chunk_id == WAGES
+
+
+class _WriterDown(FakeLLM):
+    """Analyst and Critic answer; the Writer's model is unreachable (5xx/timeouts, 30 Oct)."""
+
+    def complete[T: BaseModel](self, stage: str, messages: Sequence[Message], schema: type[T]) -> T:
+        if stage == "writer":
+            raise LLMUnavailable("writer: the language model is not responding, try again later")
+        return super().complete(stage, messages, schema)
+
+
+def test_unreachable_writer_still_returns_the_checked_results() -> None:
+    llm = _WriterDown({"analyst": [reply(WAGES)], "critic": [PASS]})
+    stages: list[str] = []
+    analysis = analyze_case(FACTS, "salary unpaid", llm, search, stages.append)
+
+    assert stages[-1] == "writing"
+    assert analysis.writer is None and analysis.writer_failed
+    assert analysis.total_aed == Decimal("4800.00")  # the calculator's money is unaffected
+    assert analysis.claim and analysis.claim[0].amount_aed == Decimal("4800.00")
     assert analysis.violations[0].article.chunk_id == WAGES
