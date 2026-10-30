@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     langfuse_host: str = "https://cloud.langfuse.com"
     # Test-only hooks such as TC-11's seeded bad citation (task 3.9). Never set in production.
     haqqi_test_hooks: bool = False
+    # Demo replay: TC-02 (Urdu) from a recorded Gemma 4 run, no model calls (haqqi/demo_replay.py).
+    demo_replay: bool = False
 
     @field_validator("cors_origin_regex", mode="before")
     @classmethod

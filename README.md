@@ -17,9 +17,17 @@ This repo is built for Hacktoberfest Hack Day Dubai x Legesher. It is a copy of 
 [Haqqi project](https://github.com/himaallu/Haqqi-AI), with its full history, so everything before today's commits was
 built for Haqqi. What changed today:
 
-- **Open-weight Gemma 4 is now the default model.** Every LLM step (intake, analyst, critic, revision, writer) runs on
-  `gemma-4-31b-it`, with `gemma-4-26b-a4b-it` as the fallback, through Google's OpenAI-compatible Gemini API endpoint.
-  Leaving `K2_API_KEY` empty keeps every step on Gemma. The client now sends the Gemini-only `reasoning_effort` field to
+- **Open-weight Gemma 4 is now the only model.** Every LLM step (intake, analyst, critic, revision, writer) runs on
+  `gemma-4-26b-a4b-it` through Google's OpenAI-compatible Gemini API endpoint, with no fallback model and no K2
+  (`gemma-4-31b-it` was dropped: on 30 Oct it returned 500s and timed out on every step). A 5xx or timeout is retried
+  twice on the same model (after 2 s, then 5 s); calls time out after 60 s, the Writer's after 120 s. If the Writer
+  still can't be reached, the checked findings and amounts are shown with a "Try again" notice.
+- **Demo replay (`DEMO_REPLAY=1`, off by default).** Two stories answer from recorded Gemma 4 runs (30 Oct 2026)
+  with no model call and no network: TC-02 in Urdu (`eval/demo/tc02_gemma_run1.json`) and the same case in English,
+  the `/demo` page's "Fired without notice" example (`eval/demo/tc02_en_pitch_gemma.json`). Routing, the calculator, the
+  citation checks and the PDF still run live on the recorded replies, the progress stages stream with 1–3 s pauses,
+  and the results say "Replay of a recorded Gemma 4 run (30 Oct 2026)". Any other story runs live. Re-record with
+  `cd backend && PYTHONPATH=.. uv run python -m eval.demo.record` (add `--english-pitch` for the English one). The client now sends the Gemini-only `reasoning_effort` field to
   Gemini models only.
 - **Open source:** an MIT licence (`LICENSE`) for Haqqi's code. Fonts stay under the SIL OFL, and the other terms are
   in `THIRD_PARTY_NOTICES.md`.
@@ -87,8 +95,8 @@ flowchart TD
     classDef llm fill:#fde7c8,stroke:#c77700,color:#222
 ```
 
-The tinted steps call an LLM: open-weight Gemma 4 (`gemma-4-31b-it`, then `gemma-4-26b-a4b-it`) through Google's
-Gemini API, with K2 Horizon (IFM) as an optional fallback when `K2_API_KEY` is set. Everything else is
+The tinted steps call an LLM: open-weight Gemma 4 (`gemma-4-26b-a4b-it`) through Google's Gemini API. K2 Horizon
+(IFM) can still be added as a fallback by setting `K2_API_KEY`. Everything else is
 plain code, so no amount or article reaches the worker unchecked.
 
 **Trust rules (enforced in code, see `CLAUDE.md`):**
@@ -109,7 +117,7 @@ plain code, so no amount or article reaches the worker unchecked.
 | Database | Supabase Postgres with pgvector and Arabic/English full-text search; pg_cron deletes cases after 7 days |
 | Law | Federal Decree-Law 33/2021 (as amended) and Cabinet Resolution 1/2022, English and Arabic, one chunk per clause (`data/law/`) |
 | Embeddings, speech | BGE-M3 and Whisper large-v3-turbo on Cloudflare Workers AI |
-| LLM | Gemma 4 (31B, then 26B A4B) on Google's free API tier; K2 Horizon optional. Gemini Flash models still work via `GEMINI_MODEL` |
+| LLM | Gemma 4 (26B A4B) on Google's free API tier; K2 Horizon optional. Gemini Flash models still work via `GEMINI_MODEL` |
 | Tracing | Langfuse via OpenTelemetry: stage, model, timing and tokens per LLM call, never content |
 | PDF | WeasyPrint with Noto Naskh Arabic and the Noto font for each worker language |
 
@@ -154,7 +162,8 @@ cd backend && DATABASE_URL=postgresql://haqqi:haqqi@localhost:5432/haqqi \
 | `make eval` | The full evaluation (K2 by default; `EVAL_ARGS="--provider gemini"`) |
 
 Keys: `GEMINI_API_KEY` for Gemma 4 (`K2_API_KEY` optional), and `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` with
-`EMBEDDER=cloudflare` for search and voice. Tests use a fake embedder and need no keys. Deploying to Vercel, Render and
+`EMBEDDER=cloudflare` for search and voice. Tests use a fake embedder and need no keys. `DEMO_REPLAY=1` runs the
+TC-02 case (Urdu, or the English `/demo` example) from a recorded Gemma 4 run with no model or network (see the Hack Day notes above). Deploying to Vercel, Render and
 Supabase is covered in [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
 ```

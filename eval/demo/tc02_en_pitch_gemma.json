@@ -1,0 +1,281 @@
+{
+ "note": "Model replies and retrieved law from a live run, replayed by haqqi/demo_replay.py",
+ "case": "TC-02",
+ "recorded_on": "2026-10-30",
+ "models": [
+  "gemma-4-26b-a4b-it"
+ ],
+ "language": "en",
+ "story": "I worked as a cashier in a supermarket in Abu Dhabi, not in a free zone, from 1 June 2024. On 20 September my manager told me my job ends today. They gave me no notice. My contract says 30 days' notice. My basic salary is 2,000 dirhams and my total salary is 3,000.",
+ "calls": [
+  {
+   "stage": "intake",
+   "output": {
+    "language": null,
+    "issue_types": [
+     "termination",
+     "notice_pay"
+    ],
+    "emirate": "abu_dhabi",
+    "zone": "mainland",
+    "free_zone_name": null,
+    "worker_type": "private_sector",
+    "contract_type": null,
+    "weekly_hours": null,
+    "start_date": "2024-06-01",
+    "end_date": "2026-09-20",
+    "basic_wage_aed": "2000",
+    "total_wage_aed": "3000",
+    "months_unpaid": null,
+    "deducted_amount_aed": null,
+    "deducted_monthly_aed": null,
+    "unused_leave_days": null,
+    "unpaid_absence_days": null,
+    "termination": "employer",
+    "notice_days_contract": 30,
+    "notice_days_given": 0,
+    "in_scope": true,
+    "scope_reason": "Private sector worker in mainland Abu Dhabi.",
+    "missing_info": [
+     "contract_type",
+     "weekly_hours"
+    ],
+    "facts_summary_en": "The worker was employed as a cashier at a supermarket in Abu Dhabi mainland. Employment began on 2024-06-01 and ended on 2026-09-20. The employer terminated the worker without providing notice. The contract stipulates a 30-day notice period. The total monthly salary is 3,000 AED, with a basic salary of 2,000 AED."
+   }
+  },
+  {
+   "stage": "analyst",
+   "output": {
+    "issues": [
+     {
+      "issue_type": "notice_pay",
+      "finding": "The employer terminated the worker without providing the contractually required 30-day notice period, making the worker entitled to a warning allowance.",
+      "chunk_ids": [
+       "fdl33-2021:art43:cl3"
+      ],
+      "confidence": "high",
+      "evidence": "The worker stated they were told their job ends immediately on 20 September, despite a 30-day notice period in the contract."
+     },
+     {
+      "issue_type": "gratuity",
+      "finding": "The worker is entitled to an end-of-service gratuity as they have completed more than one year of continuous service.",
+      "chunk_ids": [
+       "fdl33-2021:art51:cl2",
+       "fdl33-2021:art51:cl3"
+      ],
+      "confidence": "high",
+      "evidence": "The worker has completed 2.31 years of service, which exceeds the one-year requirement for foreign full-time workers."
+     }
+    ],
+    "not_covered": [],
+    "time_limit_note": "The case for any rights entitled under this Law shall not be heard after the lapse of two years from the date of work relation termination.",
+    "next_steps": [
+     "File a formal complaint with the Ministry of Human Resources & Emiratisation (MOHRE) to seek an amicable settlement.",
+     "Gather your employment contract and any written termination notice provided by the employer.",
+     "Prepare copies of your bank statements or payslips to prove your last received wage.",
+     "If MOHRE cannot resolve the dispute, request the referral of the case to the competent court."
+    ],
+    "documents_to_gather": [
+     "Employment Contract",
+     "Termination letter or message",
+     "Salary slips or bank statements",
+     "Passport and Emirates ID"
+    ]
+   }
+  },
+  {
+   "stage": "critic",
+   "output": {
+    "verdict": "pass",
+    "problems": [],
+    "missed_issues": []
+   }
+  },
+  {
+   "stage": "writer",
+   "output": {
+    "headline": "Your employer terminated your job without giving you the required notice period.",
+    "explanation": "Your employer ended your job on 2026-09-20 without giving you the 30 days' notice mentioned in your contract. Because of this, you may be entitled to pay instead of notice. You also completed more than one year of service, so you are entitled to end-of-service gratuity. Haqqi explains the law and helps you prepare a complaint for MOHRE. MOHRE will then review your case and decide on the final outcome.",
+    "amount_lines": [
+     "[[AMOUNT_1]] for 30 days of notice pay based on your total wage",
+     "[[AMOUNT_2]] for end-of-service gratuity based on your basic wage and service length"
+    ],
+    "checklist": [
+     "Gather your employment contract and any termination notice.",
+     "Prepare copies of your bank statements or payslips.",
+     "File a formal complaint with MOHRE to seek a settlement.",
+     "If MOHRE cannot resolve the dispute, ask to refer the case to court."
+    ],
+    "letter_facts_ar": "بدأت العمل بتاريخ 2024-06-01. وفي تاريخ 2026-09-20، أبلغني صاحب العمل بإنهاء خدماتي فوراً. لم يتم إخطاري بفترة الإنذار المنصوص عليها في العقد والتي تبلغ 30 يوماً. وبناءً عليه، أتقدم بهذا الطلب للمطالبة بحقوقي القانونية المترتبة على هذا الإنهاء.",
+    "letter_facts_translation": "I started working on 2024-06-01. On 2026-09-20, my employer informed me that my services were terminated immediately. I was not given the 30-day notice period stipulated in the contract. Therefore, I am submitting this request to claim my legal rights resulting from this termination."
+   }
+  }
+ ],
+ "retrieved": [
+  {
+   "id": "fdl33-2021:art43:cl5",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art43:cl2",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art1",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art43:cl1",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art43:cl4",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art37:cl3",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art45:cl1",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art35",
+   "source": "search"
+  },
+  {
+   "id": "fdl33-2021:art42:cl3",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art47:cl1",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art47:cl2",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art47:cl3",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art43:cl3",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl1",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl2",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl3",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl4",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl5",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl6",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl7",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art51:cl8",
+   "source": "pack"
+  },
+  {
+   "id": "cr1-2022:art30:cl1",
+   "source": "pack"
+  },
+  {
+   "id": "cr1-2022:art30:cl2",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art54:cl9",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art54:cl1",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art54:cl2",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art54:cl4",
+   "source": "pack"
+  },
+  {
+   "id": "fdl33-2021:art54:cl5",
+   "source": "pack"
+  }
+ ],
+ "live_result": {
+  "id": "TC-02",
+  "language": "en",
+  "expected": [
+   "termination",
+   "notice_pay"
+  ],
+  "route": "ready",
+  "referral_kind": null,
+  "intake_issues": [
+   "termination",
+   "notice_pay"
+  ],
+  "intake_summary": "The worker was employed as a cashier at a supermarket in Abu Dhabi mainland. Employment began on 2024-06-01 and ended on 2026-09-20. The employer terminated the worker without providing notice. The contract stipulates a 30-day notice period. The total monthly salary is 3,000 AED, with a basic salary of 2,000 AED.",
+  "missing_fields": [],
+  "stages": [
+   "retrieving",
+   "calculating",
+   "analysing",
+   "critiquing",
+   "writing",
+   "done"
+  ],
+  "seconds": 78.5,
+  "total_aed": "6229.59",
+  "claim": {
+   "Notice pay": "3000.00",
+   "End-of-service gratuity": "3229.59"
+  },
+  "citations": [
+   "fdl33-2021:art43:cl3",
+   "fdl33-2021:art51:cl2",
+   "fdl33-2021:art51:cl3"
+  ],
+  "not_covered": [],
+  "critic": "pass",
+  "revised": false,
+  "writer_failed": false,
+  "headline": "Your employer terminated your job without giving you the required notice period.",
+  "worker_text_script": 1.0,
+  "letter_translation_script": 1.0,
+  "letter_facts_ar_script": 1.0,
+  "arabic_indic_digits": false,
+  "pdf_status": 200,
+  "pdf": "docs/language_check/tc-02_en.pdf",
+  "pdf_fonts": [
+   "Noto-Naskh-Arabic",
+   "Noto-Naskh-Arabic-Bold",
+   "Noto-Sans",
+   "Noto-Sans-Bold"
+  ],
+  "total_matches_cases_md": true
+ }
+}

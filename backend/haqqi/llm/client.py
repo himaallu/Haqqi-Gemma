@@ -1,7 +1,8 @@
 """OpenAI-compatible chat client for the agents (task 3.5).
 
 Every reply is parsed into a Pydantic model (CLAUDE.md): invalid JSON gets one retry with a
-short correction, then `LLMOutputError`. Transport failures get one retry, then the next
+short correction, then `LLMOutputError`. Transport failures (5xx, timeout) get two more tries on
+the same model after 2 s and 5 s, then the next
 provider in the list (flag 18: free-tier Gemini models, then K2), then `LLMUnavailable`. A rate
 limit moves straight on to the next provider; only the last one waits it out. Calls are serialised
 and spaced to respect K2's 2 requests/second (flag 20). Logs never contain content or keys.
@@ -25,7 +26,10 @@ from haqqi.config import Settings
 
 log = logging.getLogger(__name__)
 
-TIMEOUT_S = 90.0  # K2 calls measured 5-77 s on 2 Oct; a shorter cap only wastes a retry
+TIMEOUT_S = 60.0  # per call; Gemma 4 26B answered intake/analyst/critic in 1-13 s on 30 Oct
+# Gemma 4 26B's Writer took 66 s on 30 Oct (a long bilingual reply), so it gets more time.
+STAGE_TIMEOUT_S = {"writer": 120.0}
+RETRY_BACKOFF_S = (2.0, 5.0)  # waits before the 2nd and 3rd try on a 5xx or timeout
 MIN_GAP_S = 0.5  # 2 requests/second
 MAX_RETRY_AFTER_S = 10.0
 # A 429 asking us to wait longer than this (e.g. a free-tier daily quota, 20 requests per model per
@@ -34,7 +38,8 @@ PARK_AFTER_S = 60.0
 MAX_PARK_S = 3600.0
 _RETRY_DELAY = re.compile(r'"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"')
 
-_THINK = re.compile(r"<think>.*?</think>", re.S)
+# Reasoning blocks: K2 writes <think>, Gemma 4 writes <thought>; either may contain braces.
+_THINK = re.compile(r"<(think|thought)>.*?</\1>", re.S)
 _FENCE = re.compile(r"```(?:json)?")
 
 
@@ -172,10 +177,12 @@ class LLMClient:
         on_success: Callable[[Provider], None] | None = None,
         timeout_s: float = TIMEOUT_S,
         park_on_timeout_s: float = 0.0,
+        stage_timeouts_s: dict[str, float] | None = None,
     ) -> None:
         self._providers = [p for p in providers if p.api_key and p.api_key.get_secret_value()]
         self._on_success = on_success  # e.g. counting free-tier calls (haqqi/usage.py)
         self._timeout_s = timeout_s
+        self._stage_timeouts = STAGE_TIMEOUT_S if stage_timeouts_s is None else stage_timeouts_s
         # > 0: a model that times out is skipped for this long instead of costing a second wait
         # (the demo's free models sometimes hang; one hang on stage is enough).
         self._park_on_timeout_s = park_on_timeout_s
@@ -230,17 +237,19 @@ class LLMClient:
         last = available[-1]
         all_rate_limited = True
         for provider in available:
-            for attempt in (1, 2):
+            for attempt in range(1 + len(RETRY_BACKOFF_S)):
                 outcome = self._post(stage, provider, messages)
                 if isinstance(outcome, str):
                     return outcome
                 all_rate_limited = all_rate_limited and outcome.rate_limited
                 if outcome.parked:
                     break
-                if outcome.rate_limited and provider is not last:
-                    break  # another provider (or model quota) may be free: don't wait this one out
-                if attempt == 1:
+                if outcome.rate_limited:
+                    if provider is not last or attempt > 0:
+                        break  # another provider may be free, or we already waited this one out
                     self._sleep(outcome.wait_s)
+                elif attempt < len(RETRY_BACKOFF_S):
+                    self._sleep(RETRY_BACKOFF_S[attempt])
             log.warning("llm %s: provider %s unavailable", stage, provider.name)
         raise LLMUnavailable(
             f"{stage}: the language model is not responding, try again later",
@@ -280,7 +289,7 @@ class LLMClient:
                     "temperature": 0,
                     **provider.extra,
                 },
-                timeout=self._timeout_s,
+                timeout=self._stage_timeouts.get(stage, self._timeout_s),
             )
         except httpx.HTTPError as exc:
             log.warning("llm %s: %s %s", stage, provider.name, type(exc).__name__)

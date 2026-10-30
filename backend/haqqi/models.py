@@ -181,6 +181,8 @@ class Analysis(_Model):
     revised: bool = False
     writer: WriterOutput | None = None  # worker-language text and the Arabic letter
     writer_failed: bool = False  # the Writer's output failed our checks; the rest is still valid
+    # Set by DEMO_REPLAY: the model replies came from a recording (shown on the results page).
+    replay_label: str | None = None
     # Task 8.5: no finding of medium or high confidence. Always recomputed from the findings.
     unsure: bool = False
 

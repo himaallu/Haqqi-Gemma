@@ -50,8 +50,10 @@ ASK = [Message("system", "rules"), Message("user", "data")]
         '{"verdict": "pass", "score": 3}',
         'Sure!\n```json\n{"verdict": "pass", "score": 3}\n```',
         '<think>The user wants {json} ...</think>\n{"verdict": "pass", "score": 3}',
+        # Gemma 4 puts its reasoning in the reply as <thought>, braces and all (30 Oct).
+        '<thought>Reply as {"verdict": ...}.</thought>{"verdict": "pass", "score": 3}',
     ],
-    ids=["plain", "fenced", "think-tag"],
+    ids=["plain", "fenced", "think-tag", "gemma-thought-tag"],
 )
 def test_parses_valid_fenced_and_think_tag_replies(content: str) -> None:
     client, _ = client_for([reply(content)])
@@ -86,10 +88,36 @@ def test_rate_limit_waits_retry_after_then_succeeds() -> None:
 
 
 def test_repeated_server_errors_raise_unavailable_without_leaking_the_key() -> None:
-    client, _ = client_for([httpx.Response(503), httpx.Response(502)])
+    client, sleeps = client_for([httpx.Response(503), httpx.Response(502), httpx.Response(500)])
     with pytest.raises(LLMUnavailable) as err:
         client.complete("writer", ASK, Verdict)
     assert "secret-key" not in str(err.value)
+    assert [s for s in sleeps if s >= 1] == [2.0, 5.0]  # three tries, backoff 2 s then 5 s
+
+
+def test_a_server_error_is_retried_on_the_same_model_and_can_succeed_on_the_third_try() -> None:
+    client, sleeps = client_for(
+        [httpx.Response(500), httpx.Response(503), reply('{"verdict": "pass", "score": 4}')]
+    )
+    assert client.complete("analyst", ASK, Verdict).score == 4
+    assert [s for s in sleeps if s >= 1] == [2.0, 5.0]
+
+
+def test_the_writer_gets_a_longer_timeout_than_the_other_stages() -> None:
+    timeouts: dict[str, object] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        stage = json.loads(request.content)["messages"][0]["content"]
+        timeouts[stage] = request.extensions["timeout"]["read"]
+        return reply('{"verdict": "pass", "score": 1}')
+
+    k2 = Provider("k2", "https://k2.test/v1", "m", SecretStr("a"))
+    client = LLMClient(
+        [k2], http=httpx.Client(transport=httpx.MockTransport(handler)), sleep=_no_sleep
+    )
+    for stage in ("intake", "analyst", "critic", "writer"):
+        client.complete(stage, [Message("user", stage)], Verdict)
+    assert timeouts == {"intake": 60.0, "analyst": 60.0, "critic": 60.0, "writer": 120.0}
 
 
 def test_falls_back_to_the_next_provider() -> None:
@@ -109,7 +137,7 @@ def test_falls_back_to_the_next_provider() -> None:
     client = LLMClient(providers, http=http, sleep=_no_sleep)
 
     assert client.complete("intake", ASK, Verdict).score == 9
-    assert calls == ["k2.test", "k2.test", "backup.test"]
+    assert calls == ["k2.test", "k2.test", "k2.test", "backup.test"]
 
 
 def _no_sleep(_seconds: float) -> None:
@@ -375,7 +403,7 @@ def test_a_timed_out_model_is_parked_and_the_next_one_answers_at_once() -> None:
     assert calls == ["slow", "fast", "fast"]  # skipped while parked
 
 
-def test_without_park_on_timeout_a_timeout_is_retried_once() -> None:
+def test_without_park_on_timeout_a_timeout_is_retried_twice() -> None:
     calls: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -388,7 +416,7 @@ def test_without_park_on_timeout_a_timeout_is_retried_once() -> None:
     )
     with pytest.raises(LLMUnavailable):
         client.complete("ask", ASK, Verdict)
-    assert calls == ["k2", "k2"]
+    assert calls == ["k2", "k2", "k2"]
     assert not client.is_parked(k2)
 
 
